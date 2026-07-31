@@ -1,0 +1,49 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "KaiBot Terminal",
+  "version": "0.1.0",
+  "identifier": "io.kaibot.terminal",
+  "build": {
+    "beforeDevCommand": "bun run dev:frontend",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "bun run build:backend && bun run build:web",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "macOSPrivateApi": true,
+    "windows": [],
+    "security": {
+      "csp": null
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDlFMTk5RUVCRTREMDg2NDMKUldSRGh0RGs2NTRabm1PWnVjcEhnaW1RSmM2OG81YVpHdjNLT21RTFQxVElLSitiZ1p3WWwrMnUK",
+      "endpoints": [
+        "https://github.com/KaiBotIO/kaibot-terminal/releases/latest/download/latest.json"
+      ]
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "createUpdaterArtifacts": true,
+    "externalBin": [
+      "binaries/node-backend"
+    ],
+    "resources": {
+      "../dist/": "dist/"
+    },
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "macOS": {
+      "entitlements": "./Entitlements.plist"
+    }
+  }
+}
