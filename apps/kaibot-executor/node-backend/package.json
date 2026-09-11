@@ -1,0 +1,29 @@
+{
+  "name": "kaibot-executor-backend",
+  "version": "0.4.2",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --watch src/main.ts",
+    "build": "bun run scripts/build-sidecar.ts",
+    "start": "bun run src/main.ts",
+    "test": "bun test src"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.16.0",
+    "@kaibot/types": "file:../../../packages/types",
+    "@noble/ciphers": "^2.2.0",
+    "@noble/curves": "^2.2.0",
+    "@noble/hashes": "^2.2.0",
+    "@stoqey/ib": "^1.5.3",
+    "@types/bcryptjs": "^3.0.0",
+    "bcryptjs": "^3.0.3",
+    "hono": "^4.8.5",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.0.0",
+    "@types/ws": "^8.18.1",
+    "typescript": "^5.3.0"
+  }
+}
