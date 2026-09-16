@@ -1,0 +1,222 @@
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+
+/* ============================================================
+   Gridline Tokyo — platform design tokens (frontend + executor
+   + admin). Tokyo Night palette on the existing Material/shadcn
+   token names so every consumer recolours without renaming.
+   NIGHT -> .dark (default in-app), DAY -> :root/.light.
+   --kb-* are raw hex for hairline chrome / inline SVG.
+   ============================================================ */
+
+@layer base {
+  /* ---------- DAY (default / .light) ---------- */
+  :root {
+    --background: 230 11% 89%;
+    --foreground: 228 26% 27%;
+    --card: 225 22% 96%;
+    --card-foreground: 228 26% 27%;
+    --popover: 230 11% 89%;
+    --popover-foreground: 228 26% 27%;
+    --primary: 50 100% 41%;
+    --primary-foreground: 231 47% 97%;
+    --secondary: 228 15% 87%;
+    --secondary-foreground: 228 26% 27%;
+    --muted: 228 15% 87%;
+    --muted-foreground: 233 17% 51%;
+    --accent: 50 100% 41%;
+    --accent-foreground: 228 26% 27%;
+    --destructive: 0 53% 52%;
+    --destructive-foreground: 231 47% 97%;
+    --border: 227 19% 76%;
+    --input: 228 15% 87%;
+    --ring: 50 100% 41%;
+    --radius: 0px;
+
+    --surface: 230 11% 89%;
+    --surface-container-lowest: 225 22% 96%;
+    --surface-container-low: 228 15% 87%;
+    --surface-container: 228 15% 87%;
+    --surface-container-high: 227 16% 83%;
+    --surface-container-highest: 227 18% 80%;
+    --on-surface: 228 26% 27%;
+    --on-surface-variant: 235 23% 39%;
+    --outline: 233 17% 51%;
+    --outline-variant: 227 19% 76%;
+    --error: 0 53% 52%;
+    --on-primary-buttons: 231 47% 97%;
+    --primary-hex: #CFAD00;
+    --grid-dot-color: rgba(52, 59, 88, 0.06);
+    --glass-bg: rgba(225, 226, 231, 0.7);
+
+    --sidebar: var(--surface-container-low);
+    --sidebar-foreground: var(--on-surface);
+    --sidebar-primary: var(--primary);
+    --sidebar-primary-foreground: var(--primary-foreground);
+    --sidebar-accent: var(--surface-container-high);
+    --sidebar-accent-foreground: var(--on-surface);
+    --sidebar-border: var(--outline-variant);
+    --sidebar-ring: var(--ring);
+
+    --chart-1: var(--primary);
+    --chart-2: 195 100% 30%;  /* teal */
+    --chart-3: 266 85% 64%;   /* violet */
+    --chart-4: 35 39% 40%;    /* amber */
+    --chart-5: 0 53% 52%;     /* red */
+
+    /* raw hex (Gridline chrome / inline SVG) */
+    --kb-bg: #e1e2e7;
+    --kb-surface: #d8dae2;
+    --kb-raised: #cdd0db;
+    --kb-hover: #c4c8d6;
+    --kb-border: #b7bcce;
+    --kb-hairline: #b7bcce;
+    --kb-hairline-faint: #c9cdda;
+    --kb-text: #343b58;
+    --kb-text-2: #4c5079;
+    --kb-muted: #6c7196;
+    --kb-faint: #8990b3;
+    --kb-accent: #CFAD00;
+    --kb-accent-deep: #a98e00;
+    --kb-accent-ink: #f4f5fb;
+    --kb-green: #587539;
+    --kb-red: #c64343;
+    --kb-amber: #8c6c3e;
+    --kb-teal: #007197;
+    --kb-violet: #9854f1;
+    --kb-blue: #2e7de9;
+    --kb-accent-dim: color-mix(in oklab, var(--kb-accent) 16%, transparent);
+    --kb-accent-soft: color-mix(in oklab, var(--kb-accent) 50%, transparent);
+    --kb-grid-rule: rgba(52, 59, 88, 0.06);
+    --kb-shadow: 0 40px 120px -24px rgba(52, 59, 88, 0.28), 0 8px 28px -8px rgba(52, 59, 88, 0.22);
+  }
+
+  /* ---------- NIGHT (.dark, default in-app) ---------- */
+  .dark {
+    --background: 235 19% 13%;
+    --foreground: 229 73% 86%;
+    --card: 233 23% 15%;
+    --card-foreground: 229 73% 86%;
+    --popover: 235 19% 13%;
+    --popover-foreground: 229 73% 86%;
+    --primary: 49 84% 55%;
+    --primary-foreground: 235 19% 13%;
+    --secondary: 233 23% 15%;
+    --secondary-foreground: 229 73% 86%;
+    --muted: 233 23% 15%;
+    --muted-foreground: 233 16% 50%;
+    --accent: 49 84% 55%;
+    --accent-foreground: 229 73% 86%;
+    --destructive: 349 89% 72%;
+    --destructive-foreground: 229 73% 86%;
+    --border: 232 24% 24%;
+    --input: 233 23% 15%;
+    --ring: 49 84% 55%;
+    --radius: 0px;
+
+    --surface: 235 19% 13%;
+    --surface-container-lowest: 233 17% 10%;
+    --surface-container-low: 233 23% 15%;
+    --surface-container: 233 23% 15%;
+    --surface-container-high: 230 24% 19%;
+    --surface-container-highest: 230 22% 21%;
+    --on-surface: 229 73% 86%;
+    --on-surface-variant: 233 14% 54%;
+    --outline: 233 16% 50%;
+    --outline-variant: 232 24% 24%;
+    --error: 349 89% 72%;
+    --on-primary-buttons: 235 19% 13%;
+    --primary-hex: #EDC92D;
+    --grid-dot-color: rgba(192, 202, 245, 0.05);
+    --glass-bg: rgba(26, 27, 38, 0.6);
+
+    --sidebar: var(--surface-container-low);
+    --sidebar-foreground: var(--on-surface);
+    --sidebar-primary: var(--primary);
+    --sidebar-primary-foreground: var(--primary-foreground);
+    --sidebar-accent: var(--surface-container-high);
+    --sidebar-accent-foreground: var(--on-surface);
+    --sidebar-border: var(--outline-variant);
+    --sidebar-ring: var(--ring);
+
+    --chart-1: var(--primary);
+    --chart-2: 202 100% 75%;  /* teal */
+    --chart-3: 261 85% 79%;   /* violet */
+    --chart-4: 36 66% 64%;    /* amber */
+    --chart-5: 349 89% 72%;   /* red */
+
+    /* raw hex (Gridline chrome / inline SVG) */
+    --kb-bg: #1a1b26;
+    --kb-surface: #1e2030;
+    --kb-raised: #24283b;
+    --kb-hover: #2a2e42;
+    --kb-border: #2f334d;
+    --kb-hairline: #2f334d;
+    --kb-hairline-faint: #272a3d;
+    --kb-text: #c0caf5;
+    --kb-text-2: #787c99;
+    --kb-muted: #6a6f93;
+    --kb-faint: #565f89;
+    --kb-accent: #EDC92D;
+    --kb-accent-deep: #CFAD00;
+    --kb-accent-ink: #1a1b26;
+    --kb-green: #9ece6a;
+    --kb-red: #f7768e;
+    --kb-amber: #e0af68;
+    --kb-teal: #7dcfff;
+    --kb-violet: #bb9af7;
+    --kb-blue: #7aa2f7;
+    --kb-accent-dim: color-mix(in oklab, var(--kb-accent) 14%, transparent);
+    --kb-accent-soft: color-mix(in oklab, var(--kb-accent) 45%, transparent);
+    --kb-grid-rule: rgba(192, 202, 245, 0.05);
+    --kb-shadow: 0 40px 120px -24px rgba(0, 0, 0, 0.62), 0 8px 28px -8px rgba(0, 0, 0, 0.5);
+  }
+}
+
+@layer base {
+  /* ---------- CLASSIC (blue brand variant, premium tradfi group) ---------- */
+  .theme-kaibot {
+    --primary: 198 55% 48%;
+    --primary-foreground: 0 0% 100%;
+    --accent: 198 55% 48%;
+    --ring: 198 55% 48%;
+    --primary-hex: #3A9ABF;
+    --grid-dot-color: rgba(58, 154, 191, 0.1);
+    --on-primary-buttons: 0 0% 100%;
+
+    --kb-accent: #3A9ABF;
+    --kb-accent-deep: #2d7d9c;
+    --kb-accent-ink: #ffffff;
+    --kb-accent-dim: color-mix(in oklab, var(--kb-accent) 16%, transparent);
+    --kb-accent-soft: color-mix(in oklab, var(--kb-accent) 50%, transparent);
+  }
+
+  .dark.theme-kaibot,
+  .theme-kaibot.dark {
+    --primary: 198 55% 55%;
+    --primary-foreground: 198 100% 8%;
+    --accent: 198 55% 50%;
+    --ring: 198 55% 55%;
+    --primary-hex: #4DA5CB;
+    --grid-dot-color: rgba(77, 165, 203, 0.15);
+    --on-primary-buttons: 198 100% 8%;
+
+    --kb-accent: #4DA5CB;
+    --kb-accent-deep: #3A9ABF;
+    --kb-accent-ink: #08222e;
+    --kb-accent-dim: color-mix(in oklab, var(--kb-accent) 14%, transparent);
+    --kb-accent-soft: color-mix(in oklab, var(--kb-accent) 45%, transparent);
+  }
+
+  *,
+  ::before,
+  ::after {
+    border-color: hsl(var(--border));
+  }
+  body {
+    background-color: hsl(var(--surface));
+    color: hsl(var(--on-surface));
+    font-family: "Geist Variable", "Geist", system-ui, sans-serif;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
