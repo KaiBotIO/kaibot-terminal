@@ -1,0 +1,41 @@
+{
+  "name": "@kaibot/types",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    },
+    "./core": {
+      "import": "./src/index.core.ts",
+      "types": "./src/index.core.ts"
+    },
+    "./strategy": {
+      "import": "./src/trading/strategy.ts",
+      "types": "./src/trading/strategy.ts"
+    },
+    "./strategy-config": {
+      "import": "./src/trading/strategy-config.ts",
+      "types": "./src/trading/strategy-config.ts"
+    },
+    "./manager-core": {
+      "import": "./src/trading/manager-core/index.ts",
+      "types": "./src/trading/manager-core/index.ts"
+    }
+  },
+  "scripts": {
+    "test": "bun test src",
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "typescript": "~5.6.2"
+  }
+}
