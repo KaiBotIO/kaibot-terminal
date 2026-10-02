@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1073 1073" width="1073" height="1073">
+  <mask id="kaibot-mark">
+    <g transform="translate(0 83)">
+      <g fill="#fff">
+        <rect x="0" y="485" width="43" height="182"/>
+        <rect x="1031" y="485" width="42" height="182"/>
+        <rect x="898" y="120" width="36" height="130"/>
+        <circle cx="915.5" cy="71.5" r="71.5"/>
+        <path d="M 273 245 H 1020 C 1024.4 245 1031 254.5 1031 255 V 678 C 1031 792.3 913.8 907 803 907 H 53 C 51 907 43 900.1 43 898 V 469 C 43 371.8 148.8 245 273 245 Z"/>
+      </g>
+      <path d="M 277 270 H 993 C 1000.3 270 1003 279.5 1003 280 V 675 C 1003 777.9 891.3 882 798 882 H 80 C 79.5 882 70 879.3 70 872 V 493 C 70 349.4 201.5 270 277 270 Z" fill="none" stroke="#000" stroke-width="20"/>
+      <circle cx="299.5" cy="558.5" r="61.9" fill="none" stroke="#000" stroke-width="23.3"/>
+      <circle cx="774.5" cy="558.5" r="61.9" fill="none" stroke="#000" stroke-width="23.3"/>
+      <g fill="#000">
+        <rect x="452" y="656" width="6" height="216"/><rect x="426" y="693" width="58" height="147"/>
+        <rect x="532" y="598" width="7" height="234"/><rect x="506" y="635" width="59" height="147"/>
+        <rect x="615" y="627" width="7" height="245"/><rect x="589" y="693" width="58" height="166"/>
+      </g>
+    </g>
+  </mask>
+  <rect width="1073" height="1073" fill="#000" mask="url(#kaibot-mark)"/>
+</svg>
