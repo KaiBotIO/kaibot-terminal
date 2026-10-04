@@ -1,0 +1,156 @@
+@import "@kaibot/design-system/tokens";
+@import "@kaibot/design-system/components";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Tauri desktop: transparent body so macOS vibrancy shows through chrome */
+  body[data-tauri="true"] {
+    background: transparent;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+
+  /* Allow selection for specific elements even in Tauri */
+  input,
+  textarea,
+  [contenteditable="true"],
+  .selectable {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+  }
+
+  .prose {
+    max-width: none;
+  }
+
+  .prose p {
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+  }
+
+  .prose ul {
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+    list-style-type: disc;
+    padding-left: 1.5em;
+  }
+
+  .prose ol {
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+    list-style-type: decimal;
+    padding-left: 1.5em;
+  }
+
+  .prose pre {
+    background-color: hsl(var(--muted));
+    padding: 0.75em;
+    border-radius: 0;
+    margin: 0.5em 0;
+  }
+
+  .prose code {
+    background-color: hsl(var(--muted));
+    padding: 0.2em 0.4em;
+    border-radius: 0;
+    font-size: 0.875em;
+  }
+
+  .prose blockquote {
+    border-left: 3px solid hsl(var(--primary));
+    padding-left: 1em;
+    margin: 0.5em 0;
+    color: hsl(var(--muted-foreground));
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer base {
+  /* Executor-specific notification colors */
+  :root {
+    --notification-bg: 46 100% 95%;
+    --notification-border: 46 100% 80%;
+    --notification-text: 46 100% 25%;
+    --notification-icon: 46 100% 41%;
+  }
+
+  .dark {
+    --notification-bg: 48 82% 15%;
+    --notification-border: 48 82% 25%;
+    --notification-text: 48 82% 80%;
+    --notification-icon: 48 82% 55%;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .animate-gradient-flow {
+    background: linear-gradient(to bottom,
+        hsl(var(--primary)) 0%,
+        hsl(var(--background)) 100%) !important;
+    background-repeat: no-repeat;
+  }
+}
+
+@layer components {
+  .toaster {
+    @apply fixed top-4 right-4 z-[100] flex flex-col gap-2 w-full max-w-[420px];
+  }
+
+  .toast {
+    @apply bg-card border border-border pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden p-4 text-card-foreground;
+  }
+
+  .toast[data-state="open"] {
+    @apply animate-in slide-in-from-right-full duration-300;
+  }
+
+  .toast[data-state="closed"] {
+    @apply animate-out slide-out-to-right-full duration-200;
+  }
+
+  .toast[data-swipe="move"] {
+    @apply transform-gpu translate-x-[var(--radix-toast-swipe-move-x)];
+  }
+
+  .toast[data-swipe="cancel"] {
+    @apply translate-x-0 transition-transform duration-200;
+  }
+
+  .toast[data-swipe="end"] {
+    @apply animate-out slide-out-to-right-full duration-100;
+  }
+
+  .toast-title {
+    @apply text-sm font-semibold;
+  }
+
+  .toast-description {
+    @apply text-sm opacity-90;
+  }
+
+  .toast-success {
+    @apply border-green-500/20 bg-green-500/10 text-green-500 dark:border-green-500/30 dark:bg-green-500/20;
+  }
+
+  .toast-error {
+    @apply border-destructive/20 bg-destructive/10 text-destructive dark:border-destructive/30 dark:bg-destructive/20;
+  }
+}
