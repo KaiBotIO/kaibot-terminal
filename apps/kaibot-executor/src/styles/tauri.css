@@ -1,0 +1,20 @@
+/* Tauri-specific styles */
+
+/* Titlebar cursor */
+#titlebar {
+  cursor: default;
+}
+
+/* Interactive elements should have pointer cursor */
+#titlebar button, 
+#titlebar a, 
+#titlebar input, 
+#titlebar select, 
+#titlebar textarea, 
+#titlebar [role="button"] {
+  cursor: pointer;
+}
+
+input[type="text"], textarea {
+  cursor: text;
+}

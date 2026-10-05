@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>KaiBot Terminal</title>
+    <style>
+      :root {
+        --bg: hsl(235 19% 13%);
+        --fg: hsl(229 73% 86%);
+        --muted: hsl(229 20% 55%);
+        --gold: hsl(49 84% 55%);
+        --border: hsl(232 24% 24%);
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body {
+        background: var(--bg);
+        color: var(--fg);
+        font-family: "Geist", ui-sans-serif, system-ui, -apple-system, sans-serif;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      .panel {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 18px;
+      }
+      .spinner {
+        width: 34px;
+        height: 34px;
+        border: 2px solid var(--border);
+        border-top-color: var(--gold);
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .title {
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+      }
+      .status {
+        font-size: 12px;
+        color: var(--muted);
+        min-height: 1em;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .spinner { animation-duration: 2s; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="panel">
+      <div class="spinner" role="status" aria-label="Loading"></div>
+      <div class="title">KaiBot Terminal</div>
+      <div class="status" id="status">Starting the local engine…</div>
+    </div>
+  </body>
+</html>
