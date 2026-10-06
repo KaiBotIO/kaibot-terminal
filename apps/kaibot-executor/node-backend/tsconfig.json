@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "jsx": "react",
+    "types": ["bun"],
+    "lib": ["ES2022"],
+    "outDir": "./dist",
+    "rootDir": "./src"
+  },
+  "include": ["src/**/*"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/__tests__/e2e-signal-chain.test.ts",
+    "src/services/drawdown-trail.parity.test.ts",
+    "src/services/edge-managers/break-even-mover.parity.test.ts",
+    "src/services/edge-managers/tp-ladder.parity.test.ts",
+    "src/services/edge-managers/risk-guard.parity.test.ts",
+    "src/services/edge-managers/drawdown-trailing-stop.parity.test.ts",
+    "src/services/edge-managers/group-risk-guard.parity.test.ts",
+    "src/services/edge-managers/backtester-parity.test.ts"
+  ]
+}
