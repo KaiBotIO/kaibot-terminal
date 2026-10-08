@@ -1,0 +1,20 @@
+node_modules/
+dist/
+web-build/
+
+# env & local secrets — never commit
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# rust / tauri build output
+apps/kaibot-executor/src-tauri/target/
+apps/kaibot-executor/src-tauri/binaries/
+
+# per-instance executor state (SQLite db, crypto salt, dev secret)
+apps/kaibot-executor/node-backend/data/
+
+# OS noise
+.DS_Store
