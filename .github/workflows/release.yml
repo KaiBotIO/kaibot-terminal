@@ -1,0 +1,273 @@
+name: Release
+
+# THE canonical release pipeline. It runs in the PUBLIC repo (KaiBotIO/kaibot-terminal)
+# after the monorepo mirrors the tag there; the monorepo's own executor-release.yml is
+# dispatch-only and publishes nothing. Everything installed apps consult lives here:
+# self-update.ts pins CANONICAL_REPO to this repo and refuses env overrides, and
+# tauri.conf.json's updater endpoint points at this repo's releases/latest.
+#
+# One tag drives everything: Tauri installers (mac/win/linux) + the tauri-updater
+# manifest, the standalone daemon tarballs, and the Docker image — all published
+# to one GitHub Release at the same version, so frontend and backend never skew.
+on:
+  push:
+    tags:
+      - 'executor-v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version (without the executor-v prefix), e.g. 0.2.0'
+        required: true
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  PROJECT: apps/kaibot-executor
+  # Baked into the web UI by every build:web below. Prod is a split deployment:
+  # api.kaibot.io is the API, app.kaibot.io serves static assets only.
+  VITE_KAIBOT_API_URL: https://api.kaibot.io
+  VITE_KAIBOT_APP_URL: https://app.kaibot.io
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - id: v
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            # Reject anything that isn't a plain semver-ish token.
+            case "$INPUT_VERSION" in
+              *[!0-9A-Za-z.+-]*|'') echo "Invalid version input" >&2; exit 1 ;;
+            esac
+            echo "version=$INPUT_VERSION" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=${GITHUB_REF_NAME#executor-v}" >> "$GITHUB_OUTPUT"
+          fi
+
+  # Tauri desktop bundles + signed updater artifacts + latest.json. The Tauri
+  # beforeBuildCommand builds the sidecar AND the web UI from this same commit,
+  # so the shell and the daemon it ships are always the same version.
+  tauri:
+    needs: version
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Windows is deferred until code-signing for it is sorted; re-add
+          # `windows-latest` here (plus WINDOWS_CERTIFICATE* secrets) to ship it.
+          - platform: macos-latest
+            args: '--target universal-apple-darwin'
+          - platform: ubuntu-22.04
+            # --verbose: the bundler swallows linuxdeploy's stderr at the
+            # default log level, turning any AppImage failure into a bare
+            # "failed to run linuxdeploy".
+            args: '--verbose'
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: Linux build deps
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - run: bun install
+
+      - name: Stamp version
+        shell: bash
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          cd "$PROJECT"
+          bun --eval "const f='src-tauri/tauri.conf.json';const j=require('./'+f);j.version='$VERSION';require('fs').writeFileSync(f,JSON.stringify(j,null,2)+'\n')"
+          bun --eval "const f='node-backend/package.json';const j=require('./'+f);j.version='$VERSION';require('fs').writeFileSync(f,JSON.stringify(j,null,2)+'\n')"
+
+      # Notarization runs against the App Store Connect API (issuer + key id +
+      # p8), not an Apple ID — no 2FA in CI. The bundler wants the p8 as a file.
+      - name: Write App Store Connect API key
+        if: matrix.platform == 'macos-latest'
+        shell: bash
+        env:
+          APPLE_API_KEY_CONTENT: ${{ secrets.APPLE_API_KEY_CONTENT }}
+        run: printf '%s' "$APPLE_API_KEY_CONTENT" > "$RUNNER_TEMP/AuthKey.p8"
+
+      - name: Build + release (Tauri)
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          KAIBOT_EXECUTOR_VERSION: ${{ needs.version.outputs.version }}
+          # linuxdeploy strips every bundled binary by default; strip corrupts
+          # bun-compiled sidecars and kills the AppImage step.
+          NO_STRIP: true
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_PATH: ${{ runner.temp }}/AuthKey.p8
+        with:
+          projectPath: ${{ env.PROJECT }}
+          tagName: ${{ github.ref_name }}
+          releaseName: 'KaiBot Terminal ${{ needs.version.outputs.version }}'
+          releaseDraft: true
+          includeUpdaterJson: true
+          args: ${{ matrix.args }}
+
+  # Standalone daemon tarballs (binary + web UI together → no version skew).
+  standalone:
+    needs: [version, tauri]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-22.04
+            target: bun-linux-x64
+            triple: x86_64-unknown-linux-gnu
+          - runner: macos-latest
+            target: bun-darwin-arm64
+            triple: aarch64-apple-darwin
+          - runner: macos-latest
+            target: bun-darwin-x64
+            triple: x86_64-apple-darwin
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install
+
+      - name: Build web UI
+        working-directory: ${{ env.PROJECT }}
+        run: bun run build:web
+
+      - name: Compile daemon (${{ matrix.triple }})
+        working-directory: ${{ env.PROJECT }}/node-backend
+        env:
+          KAIBOT_EXECUTOR_VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          bun build src/main.ts --compile --target=${{ matrix.target }} \
+            --define process.env.KAIBOT_EXECUTOR_VERSION="\"$KAIBOT_EXECUTOR_VERSION\"" \
+            --outfile kaibot-terminal
+
+      # Regression gate for the 0.1.0 first-boot crash (schema.sql resolved to
+      # the build machine's path inside compiled binaries): the binary must
+      # actually boot with a FRESH profile and answer /api/health.
+      - name: Smoke boot (fresh profile)
+        working-directory: ${{ env.PROJECT }}/node-backend
+        shell: bash
+        run: |
+          export HOME="$RUNNER_TEMP/smoke-home"
+          mkdir -p "$HOME"
+          bin="$PWD/kaibot-terminal"
+          # cwd=/ + tauri build type simulates a Finder launch: cwd-relative
+          # paths and profile-dir defaults must both survive it.
+          cd /
+          KAIBOT_BUILD_TYPE=tauri PORT=18099 "$bin" & pid=$!
+          ok=
+          for i in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:18099/api/health && ok=1 && break
+            sleep 1
+          done
+          kill "$pid" 2>/dev/null || true
+          [ -n "$ok" ]
+          test -f "$HOME/.kaibot/executor/kaibot.db"
+
+      - name: Package tarball
+        working-directory: ${{ env.PROJECT }}
+        run: |
+          mkdir -p stage/dist
+          cp node-backend/kaibot-terminal stage/kaibot-terminal
+          cp -R dist/. stage/dist/
+          tar -C stage -czf kaibot-terminal-${{ matrix.triple }}.tar.gz kaibot-terminal dist
+
+      # `self-update` fails closed: no <tarball>.sha256 asset → it refuses to
+      # swap the binary. Name and location are fixed by the updater's lookup.
+      - name: Checksum tarball
+        working-directory: ${{ env.PROJECT }}
+        run: |
+          f=kaibot-terminal-${{ matrix.triple }}.tar.gz
+          # macOS runners ship shasum, not sha256sum
+          if command -v sha256sum >/dev/null 2>&1; then sha256sum "$f" > "$f.sha256"; else shasum -a 256 "$f" > "$f.sha256"; fi
+          cat "$f.sha256"
+
+      - name: Upload to release
+        working-directory: ${{ env.PROJECT }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ github.ref_name }}" \
+            "kaibot-terminal-${{ matrix.triple }}.tar.gz" \
+            "kaibot-terminal-${{ matrix.triple }}.tar.gz.sha256" --clobber
+
+  # Thin Docker image around the prebuilt linux binary + web UI.
+  docker:
+    needs: [version, tauri]
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install
+
+      - name: Build web UI + linux binary
+        working-directory: ${{ env.PROJECT }}
+        env:
+          KAIBOT_EXECUTOR_VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          bun run build:web
+          cd node-backend
+          bun build src/main.ts --compile --target=bun-linux-x64 \
+            --define process.env.KAIBOT_EXECUTOR_VERSION="\"$KAIBOT_EXECUTOR_VERSION\"" \
+            --outfile ../kaibot-terminal-x86_64-unknown-linux-gnu
+
+      - uses: docker/setup-buildx-action@v3
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build + push image
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ env.PROJECT }}
+          file: ${{ env.PROJECT }}/Dockerfile
+          push: true
+          build-args: |
+            BINARY=kaibot-terminal-x86_64-unknown-linux-gnu
+          tags: |
+            ghcr.io/kaibotio/kaibot-terminal:${{ needs.version.outputs.version }}
+            ghcr.io/kaibotio/kaibot-terminal:latest
+
+  # Flip the draft release to published once every artifact is attached.
+  publish:
+    needs: [version, tauri, standalone, docker]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publish release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release edit "${{ github.ref_name }}" --draft=false
