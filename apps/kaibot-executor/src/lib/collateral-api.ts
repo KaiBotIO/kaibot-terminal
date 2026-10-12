@@ -1,0 +1,234 @@
+// Typed client for the Collateral feature (/api/collateral/*).
+import { apiFetch } from './api';
+
+export type FloorMode = 'hedge' | 'sell'
+export type FloorStatus = 'armed' | 'fired' | 'closed'
+export type SizingBasisMode = 'off' | 'floor'
+export type UnflooredMode = 'exclude' | 'margin'
+export type MarginState = 'ok' | 'warn' | 'block' | 'unknown'
+export type VirtualCoverage = 'none' | 'hedge'
+export type HedgeLegStatus = 'off' | 'pending' | 'refused' | 'armed' | 'fired'
+export type HedgeAlertTrap = 'near' | 'fired' | 'mmr'
+
+export interface CollateralFloorView {
+  id: string
+  exchange: string
+  accountId: string
+  coin: string
+  mode: FloorMode
+  status: FloorStatus
+  symbol: string              // hedge: 'BTCUSDT' perp; sell: 'BTCUSDT' spot
+  holdingsCoin: number
+  triggerPrice: number
+  triggerPriceInitial: number | null
+  trailPct: number | null
+  recoveryPct: number | null
+  tolerancePct: number
+  buyBack: boolean            // sell mode only
+  plannedFloorUsd: number     // holdings × trigger
+  realizedFloorUsd: number | null  // after fire: holdings × fill
+  mark: number | null
+  distanceToTriggerPct: number | null
+  firedPrice: number | null
+  firedAt: number | null
+  cycle: number
+  syntheticPositionId: string | null  // hedge mode
+  venueOrderId: string | null         // sell mode: resting conditional sell (or buy-back when fired)
+  lastError: string | null
+  createdAt: number
+  updatedAt: number
+}
+
+export interface CollateralCoinView {
+  coin: string
+  walletBalance: number
+  equity: number
+  borrowAmount: number
+  markPrice: number | null
+  usdValue: number
+  collateralSwitch: boolean
+  marginCollateral: boolean
+  collateralRatio: number
+  ratioSource: 'venue' | 'override' | 'default'
+  marginValueUsd: number      // usdValue × ratio (0 when collateral off)
+  floor: CollateralFloorView | null
+  venueQty: number            // = walletBalance
+  virtualQty: number          // off-exchange lines, pot only
+  totalQty: number
+  virtual: PotComponent | null
+  virtualImpliedFloorUsd: number | null  // virtualQty × floor trigger
+  hedge: CoinHedgeView | null           // sell floors with virtual qty
+}
+
+export interface CoinHedgeView {
+  enabled: boolean                      // floor toggle; the account's virtualCoverage decides on top
+  status: HedgeLegStatus
+  syntheticPositionId: string | null
+  qty: number
+  triggerPrice: number | null
+  notionalUsd: number
+  firedPrice: number | null
+  shortSize: number | null
+  leverageAtFire: number | null         // account scenario: every leg fired
+  liqDistancePct: number | null
+  liqPrice: number | null
+  topUpToArmUsd: number
+  topUp2xUsd: number
+  error: string | null
+  alerts: Partial<Record<HedgeAlertTrap, { at: number; title: string; body: string }>>
+}
+
+export interface HedgePlan {
+  marginUsd: number
+  notionalUsd: number
+  maintenanceUsd: number
+  leverage: number | null
+  liqDistancePct: number | null
+  topUpToArmUsd: number
+  topUp2xUsd: number
+  topUp1xUsd: number
+  ok: boolean
+  causes: Array<'lev' | 'liq'>
+  reason: string | null
+}
+
+export interface CoverageView {
+  mode: VirtualCoverage
+  virtualAtTriggerUsd: number
+  unprotectedUsd: number
+  depositCoinsUsd: number
+  plan: HedgePlan
+}
+
+export interface CollateralAlertView {
+  exchange: string
+  accountId: string
+  coin: string
+  floorId: string
+  trap: HedgeAlertTrap
+  at: number
+  title: string
+  body: string
+}
+
+export interface PotComponent { coin: string; usd: number; source: 'floor' | 'margin' | 'sold' | 'hedged'; virtual?: true }
+export interface PotView {
+  mode: SizingBasisMode
+  unfloored: UnflooredMode
+  potUsd: number
+  venueUsd: number
+  virtualUsd: number
+  components: PotComponent[]
+  usedNotionalUsd: number
+  freeUsd: number
+  capMult: number             // 1
+}
+
+export interface MarginView {
+  accountIMRate: number | null   // fraction, 0.12 = 12 %
+  accountMMRate: number | null
+  totalEquity: number | null
+  totalAvailableBalance: number | null
+  totalInitialMargin: number | null
+  totalMaintenanceMargin: number | null
+  blockMmrPct: number
+  warnMmrPct: number
+  autoReduce: boolean
+  autoReducePct: number
+  state: MarginState
+}
+
+export interface CollateralSettings {
+  exchange: string
+  accountId: string
+  sizingBasis: SizingBasisMode
+  unfloored: UnflooredMode
+  blockMmrPct: number
+  warnMmrPct: number
+  autoReduce: boolean
+  autoReducePct: number
+  ratioOverrides: Record<string, number>
+  virtualCoverage: VirtualCoverage
+}
+
+export interface CollateralOverview {
+  exchange: string
+  accountId: string
+  coins: CollateralCoinView[]
+  pot: PotView
+  margin: MarginView
+  settings: CollateralSettings
+  virtualLines: CollateralVirtualLine[]
+  coverage: CoverageView
+  alerts: CollateralAlertView[]
+  fetchedAt: number
+  error: string | null
+}
+
+export interface CollateralVirtualLine {
+  exchange: string
+  accountId: string
+  coin: string
+  label: string
+  quantity: number
+  createdAt: number
+  updatedAt: number
+}
+
+export interface CollateralAccountRef { exchange: string; accountId: string; label: string | null; connected: boolean }
+
+export interface ArmFloorInput {
+  exchange: string
+  accountId: string
+  coin: string
+  mode: FloorMode
+  triggerPrice: number
+  holdingsCoin?: number
+  trailPct?: number | null
+  recoveryPct?: number | null
+  tolerancePct?: number
+  buyBack?: boolean
+}
+
+export type UpdateFloorInput = Partial<
+  Pick<ArmFloorInput, 'triggerPrice' | 'holdingsCoin' | 'trailPct' | 'recoveryPct' | 'tolerancePct' | 'buyBack'>
+> & { virtualHedge?: boolean }
+
+export interface HedgeSyncResult { coin: string; floorId: string; status: HedgeLegStatus; error: string | null }
+
+export type CollateralSettingsPatch = Partial<CollateralSettings> & { exchange: string; accountId: string }
+
+async function send<T>(path: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE', body?: unknown): Promise<T> {
+  const res = await apiFetch(path, {
+    method,
+    headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error((json as { error?: string }).error || `HTTP ${res.status}`);
+  return json as T;
+}
+
+const virtualPath = (exchange: string, accountId: string) =>
+  `/api/collateral/${encodeURIComponent(exchange)}/${encodeURIComponent(accountId)}/virtual`;
+
+export const collateralApi = {
+  accounts: () => send<{ accounts: CollateralAccountRef[] }>('/api/collateral/accounts', 'GET'),
+  overview: (exchange: string, accountId: string) =>
+    send<CollateralOverview>(
+      `/api/collateral?exchange=${encodeURIComponent(exchange)}&accountId=${encodeURIComponent(accountId)}`,
+      'GET',
+    ),
+  arm: (input: ArmFloorInput) => send<{ floor: CollateralFloorView }>('/api/collateral/floors', 'POST', input),
+  update: (id: string, patch: UpdateFloorInput) =>
+    send<{ floor: CollateralFloorView }>(`/api/collateral/floors/${encodeURIComponent(id)}/update`, 'POST', patch),
+  disarm: (id: string) =>
+    send<{ floor: CollateralFloorView }>(`/api/collateral/floors/${encodeURIComponent(id)}/disarm`, 'POST'),
+  saveSettings: (patch: CollateralSettingsPatch) =>
+    send<{ settings: CollateralSettings; hedges: HedgeSyncResult[] }>('/api/collateral/settings', 'PUT', patch),
+  alerts: () => send<{ alerts: CollateralAlertView[] }>('/api/collateral/alerts', 'GET'),
+  setVirtual: (exchange: string, accountId: string, line: { coin: string; quantity: number; label: string }) =>
+    send<{ lines: CollateralVirtualLine[] }>(virtualPath(exchange, accountId), 'PUT', line),
+  deleteVirtual: (exchange: string, accountId: string, line: { coin: string; label: string }) =>
+    send<{ lines: CollateralVirtualLine[] }>(virtualPath(exchange, accountId), 'DELETE', line),
+};

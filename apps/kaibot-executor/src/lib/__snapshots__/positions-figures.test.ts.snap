@@ -1,0 +1,10 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`positionsKpis counts and sums exactly the rows the list shows 1`] = `
+{
+  "notional": "$49,506.25",
+  "open": 4,
+  "pnl": "+$280.58",
+  "tone": "up",
+}
+`;
