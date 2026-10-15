@@ -1,0 +1,156 @@
+name: Nightly (test build)
+
+# Unsigned-manifest test builds: Tauri installers + linux daemon + a
+# `:nightly` Docker tag, published as a rolling `nightly` pre-release. No
+# updater manifest is attached, so installed apps never auto-update to these.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * *'
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  PROJECT: apps/kaibot-executor
+  # Baked into the web UI by every build:web below. Prod is a split deployment:
+  # api.kaibot.io is the API, app.kaibot.io serves static assets only.
+  VITE_KAIBOT_API_URL: https://api.kaibot.io
+  VITE_KAIBOT_APP_URL: https://app.kaibot.io
+
+jobs:
+  # Skip the scheduled run when main hasn't moved since the last nightly.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      fresh: ${{ steps.check.outputs.fresh }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "fresh=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          last=$(gh release view nightly --json targetCommitish -q .targetCommitish 2>/dev/null || echo none)
+          if [ "$last" = "$GITHUB_SHA" ]; then
+            echo "fresh=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "fresh=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  reset-release:
+    needs: changes
+    if: needs.changes.outputs.fresh == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Recreate rolling nightly tag + draft pre-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete nightly --yes --cleanup-tag || true
+          gh release create nightly --target "$GITHUB_SHA" --draft --prerelease \
+            --title "Nightly $(date -u +%Y-%m-%d)" \
+            --notes "Automated test build of \`main\` @ ${GITHUB_SHA}. Not for production use; the desktop updater ignores these builds."
+
+  tauri:
+    needs: reset-release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            args: '--target universal-apple-darwin'
+          - platform: ubuntu-22.04
+            args: ''
+          - platform: windows-latest
+            args: ''
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+      - name: Linux build deps
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+      - run: bun install
+      - name: Build + upload (Tauri)
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # linuxdeploy strips every bundled binary by default; strip corrupts
+          # bun-compiled sidecars and kills the AppImage step.
+          NO_STRIP: true
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        with:
+          projectPath: ${{ env.PROJECT }}
+          tagName: nightly
+          releaseName: 'Nightly'
+          releaseDraft: true
+          prerelease: true
+          includeUpdaterJson: false
+          args: ${{ matrix.args }}
+
+  docker:
+    needs: reset-release
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install
+      - name: Build web UI + linux binary
+        working-directory: ${{ env.PROJECT }}
+        run: |
+          bun run build:web
+          cd node-backend
+          bun build src/main.ts --compile --target=bun-linux-x64 \
+            --outfile ../kaibot-terminal-x86_64-unknown-linux-gnu
+      - uses: docker/setup-buildx-action@v3
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build + push image
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ env.PROJECT }}
+          file: ${{ env.PROJECT }}/Dockerfile
+          push: true
+          build-args: |
+            BINARY=kaibot-terminal-x86_64-unknown-linux-gnu
+          tags: |
+            ghcr.io/kaibotio/kaibot-terminal:nightly
+
+  publish:
+    needs: [tauri, docker]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publish pre-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release edit nightly --draft=false --prerelease
