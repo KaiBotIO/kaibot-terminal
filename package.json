@@ -1,0 +1,30 @@
+{
+  "name": "kaibot-terminal-workspace",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "workspaces": [
+    "apps/kaibot-executor",
+    "apps/kaibot-executor/node-backend",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "cd apps/kaibot-executor && bun run dev",
+    "dev:web": "cd apps/kaibot-executor && bun run dev:web",
+    "build": "cd apps/kaibot-executor && bun run build",
+    "build:web": "cd apps/kaibot-executor && bun run build:web",
+    "build:desktop": "cd apps/kaibot-executor && bun run build:desktop",
+    "test": "cd apps/kaibot-executor/node-backend && bun test"
+  },
+  "engines": {
+    "bun": ">=1.0.15"
+  },
+  "overrides": {
+    "react": "^19",
+    "react-dom": "^19"
+  },
+  "trustedDependencies": [
+    "@swc/core",
+    "@tailwindcss/oxide",
+    "es5-ext"
+  ]
+}
